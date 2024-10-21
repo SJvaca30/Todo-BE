@@ -25,16 +25,15 @@ userController.loginWithEmail = async (req, res) => {
   try {
     const { email, password } = req.body;
     const user = await User.findOne({ email });
-    if (!user) {
+    if (user) {
+      // 유저가 입력한 패스워드와 암호화된 패스워드를 비교해야함
+      const isMatch = await bcrypt.compare(password, user.password);
+      if (isMatch) {
+        const token = user.generateToken();
+        return res.status(200).json({ status: 'success', user, token });
+      }
       throw new Error('아이디나 비밀번호가 일치하지 않음');
     }
-    // 유저가 입력한 패스워드와 암호화된 패스워드를 비교해야함
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (isMatch) {
-      const token = user.generateToken();
-      return res.status(200).json({ status: 'success', user, token });
-    }
-    throw new Error('아이디나 비밀번호가 일치하지 않음');
   } catch (err) {
     res.status(400).json({ status: 'fail', err: err.message });
   }
