@@ -7,11 +7,19 @@ const userController = {};
 userController.createUser = async (req, res) => {
   try {
     const { name, email, password } = req.body;
+
+    if (!name || !email || !password) {
+      return res.status(400).json({
+        status: 'fail',
+        message: 'name, email, password를 모두 입력해주세요',
+      });
+    }
+
     const user = await User.findOne({ email });
     if (user) {
       return res
         .status(400)
-        .json({ status: 'fail', message: '이미 가입한 이메일입니다' });
+        .json({ status: 'fail', message: '이미 가입한 유저입니다' });
     }
     const salt = await bcrypt.genSaltSync(saltRounds);
     const hash = await bcrypt.hash(password, salt);
@@ -26,18 +34,32 @@ userController.createUser = async (req, res) => {
 userController.loginWithEmail = async (req, res) => {
   try {
     const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({
+        status: 'fail',
+        message: 'email, password를 모두 입력해주세요',
+      });
+    }
+
     const user = await User.findOne({ email });
     if (user) {
-      // 유저가 입력한 패스워드와 암호화된 패스워드를 비교해야함
       const isMatch = await bcrypt.compare(password, user.password);
       if (isMatch) {
         const token = user.generateToken();
         return res.status(200).json({ status: 'success', user, token });
       }
-      throw new Error('아이디나 비밀번호가 일치하지 않음');
+      return res.status(400).json({
+        status: 'fail',
+        message: 'password가 일치하지 않습니다',
+      });
     }
+    return res.status(400).json({
+      status: 'fail',
+      message: 'email이 존재하지 않습니다',
+    });
   } catch (err) {
-    res.status(400).json({ status: 'fail', err: err.message });
+    res.status(400).json({ status: 'fail', message: err.message });
   }
 };
 
